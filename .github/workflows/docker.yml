@@ -17,9 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Build image
+        # GitHub 托管运行器使用 Docker Hub 官方来源，避免共享出口触发 ECR 公共限流。
         # 仅使用受 .dockerignore 约束的仓库内容；来源标签关联当前 GitHub 仓库。
         run: |
-          docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$IMAGE:latest" -t "$IMAGE:$GITHUB_SHA" .
+          docker build --build-arg PYTHON_BASE_IMAGE=python:3.12-slim-bookworm --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$IMAGE:latest" -t "$IMAGE:$GITHUB_SHA" .
       - name: Sign in to GHCR
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}

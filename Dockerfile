@@ -1,5 +1,6 @@
-# 项目 B 独立镜像；使用 Docker 官方 Python 镜像在 ECR Public 的镜像地址。
-FROM public.ecr.aws/docker/library/python:3.12-slim-bookworm
+# 默认使用本机已验证的 ECR Public 来源；云端可选择同版 Docker 官方镜像，隔离镜像源限流。
+ARG PYTHON_BASE_IMAGE=public.ecr.aws/docker/library/python:3.12-slim-bookworm
+FROM ${PYTHON_BASE_IMAGE}
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
