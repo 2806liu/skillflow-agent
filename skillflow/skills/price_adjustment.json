@@ -1,0 +1,8 @@
+{
+  "name": "price_adjustment",
+  "description": "查询演示价保政策并比较购买价、当前价和降价时间；只返回分析，不执行退款",
+  "input_schema": "ChatRequest",
+  "allowed_tools": ["get_order", "retrieve_policy", "analyze_price_adjustment"],
+  "output_schema": "ChatResponse",
+  "version": "0.2"
+}

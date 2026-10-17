@@ -1,0 +1,8 @@
+{
+  "name": "coupon_dispute",
+  "description": "核对订单原价、优惠金额、实付金额和退款依据",
+  "input_schema": "ChatRequest",
+  "allowed_tools": ["get_order", "retrieve_policy", "analyze_discount"],
+  "output_schema": "ChatResponse",
+  "version": "1.0"
+}

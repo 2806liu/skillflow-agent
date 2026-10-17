@@ -1,0 +1,9 @@
+{
+  "A123": {"order_id":"A123","buyer_id":"demo-buyer","product":"演示蓝牙耳机","sku":"earbuds-black","policy_key":"earbuds_v1","delivered_days_ago":2,"quality_issue":true,"paid_cents":18900,"original_cents":19900,"discount_cents":1000,"status":"已签收"},
+  "A124": {"order_id":"A124","buyer_id":"demo-buyer","product":"演示蓝牙耳机（白色）","sku":"earbuds-white","policy_key":"earbuds_v1","delivered_days_ago":3,"quality_issue":true,"paid_cents":18900,"original_cents":19900,"discount_cents":1000,"status":"已签收"},
+  "A125": {"order_id":"A125","buyer_id":"demo-buyer","product":"演示限量游戏手柄","sku":"controller","policy_key":"controller_missing","delivered_days_ago":1,"quality_issue":true,"paid_cents":29900,"original_cents":29900,"discount_cents":0,"status":"已签收"},
+  "A126": {"order_id":"A126","buyer_id":"demo-buyer","product":"演示蓝牙耳机","sku":"earbuds-black","policy_key":"earbuds_v1","delivered_days_ago":30,"quality_issue":true,"paid_cents":18900,"original_cents":19900,"discount_cents":1000,"status":"已签收"},
+  "A127": {"order_id":"A127","buyer_id":"demo-buyer","product":"演示蓝牙耳机","sku":"earbuds-black","policy_key":"earbuds_v1","delivered_days_ago":2,"quality_issue":false,"paid_cents":18900,"original_cents":19900,"discount_cents":500,"status":"已签收"},
+  "A900": {"order_id":"A900","buyer_id":"other-buyer","product":"其他用户的商品","sku":"earbuds-black","policy_key":"earbuds_v1","delivered_days_ago":1,"quality_issue":true,"paid_cents":18900,"original_cents":19900,"discount_cents":0,"status":"已签收"}
+  ,"A901": {"order_id":"A901","buyer_id":"alice-buyer","product":"演示买家丙的耳机","sku":"earbuds-white","policy_key":"earbuds_v1","delivered_days_ago":2,"quality_issue":true,"paid_cents":18900,"original_cents":19900,"discount_cents":0,"status":"已签收"}
+}

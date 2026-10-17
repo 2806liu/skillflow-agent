@@ -1,0 +1,5 @@
+{
+  "name": "return_exchange", "description": "核验本人订单退换资格及换货库存；当前阶段只读。",
+  "version": "2.0", "allowed_tools": ["list_my_orders", "get_order", "retrieve_policy", "assess_after_sales", "check_inventory", "create_ticket_draft", "submit_ticket"],
+  "instructions_path": "../instructions/return_exchange.md", "completion_conditions": ["policy_assessed", "inventory_checked"]
+}

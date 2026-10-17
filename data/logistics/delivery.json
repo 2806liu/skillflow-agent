@@ -1,0 +1,9 @@
+{
+  "version": "delivery-demo-v1",
+  "orders": {
+    "A123": {"buyer_id": "demo-buyer", "logistics_status": "DELIVERED", "updated_at": "2026-10-14T08:00:00+08:00", "events": [{"time": "2026-10-13T10:00:00+08:00", "description": "演示配送站已收件"}, {"time": "2026-10-14T08:00:00+08:00", "description": "模拟记录显示已签收"}]},
+    "A124": {"buyer_id": "demo-buyer", "logistics_status": "DELIVERED", "updated_at": "2026-10-13T12:00:00+08:00", "events": [{"time": "2026-10-13T12:00:00+08:00", "description": "模拟记录显示已签收"}]},
+    "A700": {"buyer_id": "demo-buyer", "logistics_status": "DELIVERED", "updated_at": "2026-10-14T09:00:00+08:00", "events": [{"time": "2026-10-14T09:00:00+08:00", "description": "模拟充电宝订单已签收；无退货运单"}]},
+    "A900": {"buyer_id": "other-buyer", "logistics_status": "DELIVERED", "updated_at": "2026-10-15T10:00:00+08:00", "events": [{"time": "2026-10-15T10:00:00+08:00", "description": "其他买家模拟签收记录"}]}
+  }
+}

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkillFlow · 数码小店</title>
+<style>
+/* 中文布局说明：宽屏并排显示聊天与执行记录，窄屏按上下顺序展示。 */
+:root{font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;color:#223047;background:#f4f6f9;font-size:15px}*{box-sizing:border-box}body{margin:0}header{padding:22px 5%;background:white;border-bottom:1px solid #e0e6ee}h1{font-size:23px;margin:0 0 8px}p{line-height:1.7}header p{margin:0;color:#68758a;font-size:13px}.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.badge{padding:5px 9px;border-radius:6px;background:#edf2f8;font-size:12px}.layout{max-width:1400px;margin:24px auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,1fr);gap:20px}.panel{background:white;border:1px solid #e0e6ee;border-radius:12px;overflow:hidden}.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 20px;border-bottom:1px solid #edf0f4}.bar h2{font-size:16px;margin:0}button{font:inherit;cursor:pointer;border:1px solid #dce3eb;border-radius:7px;padding:8px 12px;background:white;color:#34445c}button:hover{background:#edf4ff}button:disabled{opacity:.5;cursor:wait}.primary{background:#2864dc;color:white;border:0}.primary:hover{background:#2156bf}#chat{height:480px;overflow:auto;padding:20px}.welcome{color:#69768a;line-height:1.8;font-size:14px}.bubble{padding:13px 16px;border-radius:10px;background:#f2f5fa;margin-bottom:15px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8}.bubble.user{background:#eaf1ff;margin-left:35px}.role{font-size:12px;font-weight:600;color:#64738b;display:block;margin-bottom:6px}.citation{font-size:12px;background:white;border:1px solid #e0e6ee;padding:10px;margin-top:10px;white-space:normal}.citation summary{cursor:pointer;color:#2a60bc}.citation pre{white-space:pre-wrap;color:#536176}.ticket-actions{margin-top:12px;padding-top:10px;border-top:1px solid #dfe5ee;display:flex;gap:8px;flex-wrap:wrap}.ticket-actions button{font-size:13px}.ticket-message{color:#5b6b80;font-size:12px;margin-top:8px}.composer{padding:16px;border-top:1px solid #edf0f4}textarea{resize:vertical;min-height:75px;width:100%;font:inherit;border:1px solid #d8e0eb;border-radius:8px;padding:12px;outline-color:#2864dc}.actions{display:flex;justify-content:space-between;gap:10px;margin-top:10px;align-items:center}.hint{font-size:12px;color:#7a8596}.samples{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;background:#fafbfd}.samples button{font-size:12px;padding:7px 9px}.trace{padding:18px;max-height:650px;overflow:auto}.empty{color:#8490a2;line-height:1.8}.step,.event{padding:11px 12px;background:#f7f9fc;border-radius:7px;margin:9px 0;font-size:13px}.step strong,.event strong{display:block;margin-bottom:5px}.muted{color:#6d7b90;font-size:12px}.tag{font-size:11px;padding:2px 5px;background:#e8eef8;border-radius:4px;margin-left:6px}.event.failed .tag{background:#ffe7e7;color:#a52222}.event.success .tag{background:#e2f4ea;color:#24723d}.event.skipped .tag{background:#eceff3}.event pre,#plan-json{font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}#notice{max-width:1352px;margin:16px auto 0;padding:0 24px;font-size:13px;color:#866226}.status{font-size:12px;color:#6c7b91}a{color:#285fc2}footer{padding:0 24px 22px;text-align:center;color:#8690a1;font-size:12px}@media(max-width:850px){.layout{grid-template-columns:1fr;padding:0 12px;margin:14px auto}#chat{height:410px}.trace{max-height:420px}header{padding:18px}.hint{max-width:65%}}
+/* 生产模式隐藏演示按钮时，覆盖组件的 display 样式。 */
+[hidden]{display:none!important}
+/* 等待状态只显示真实处理阶段；减少动态效果偏好下禁用跳动动画，保留文字与计时。 */
+.bubble.pending{border:1px solid #dbe6f5;background:#f5f8fd}.pending-status{display:inline;white-space:normal}.typing-dots{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle}.typing-dots i{height:5px;width:5px;border-radius:50%;background:#6d8dc0;animation:typing-pulse 1.2s infinite}.typing-dots i:nth-child(2){animation-delay:.2s}.typing-dots i:nth-child(3){animation-delay:.4s}.pending-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;color:#7a8596;font-size:12px}@keyframes typing-pulse{0%,70%,100%{opacity:.35;transform:translateY(0)}35%{opacity:1;transform:translateY(-3px)}}@media(prefers-reduced-motion:reduce){.typing-dots i{animation:none}}
+</style></head>
+<!-- 页面展示项目 B 自有订单、政策和执行记录，所有业务请求都发往同源 API。 -->
+<body><header><h1>SkillFlow <span style="font-weight:400;color:#7d8899">/ 数码小店调查助手</span></h1><p>查询订单、检索店铺政策、核对退换条件，并在明确确认后提交退换货工单。</p><div class="badges"><span id="model" class="badge">模型模式检查中</span><span class="badge">订单：JSON Mock</span><span id="policy" class="badge">政策：B 本地 BM25</span><span class="badge">工单：确认后提交 · JSON Mock</span></div></header>
+<div id="notice" role="status">正在检查服务……</div>
+<main class="layout"><section class="panel"><div class="bar"><h2>聊天</h2><div><span id="identity" class="status"></span> <button id="login" hidden>登录</button> <button id="logout" hidden>退出</button> <button id="setup">重建本地政策索引</button> <button id="reset">新会话</button></div></div><div id="chat" aria-live="polite"><div class="welcome"><span id="welcome-prompt">试试：“查询订单 A123，结合店铺政策，调查这件商品能否退换。”</span><p>本项目启动时会自动索引自己的演示政策；修改政策后可重建索引。<br>演示政策仅用于开发，不代表真实商家规则。</p></div></div><div class="samples"><button data-order="A123">A123 · 正常退换</button><button data-order="A124">A124 · 换货缺货</button><button data-order="A125">A125 · 缺少政策</button><button data-order="A126">A126 · 超出期限</button></div><form class="composer" id="form"><textarea id="input" aria-label="请求" placeholder="输入请求或订单号；Enter 发送，Shift+Enter 换行" required maxlength="4000"></textarea><div class="actions"><span class="hint">先调查资格；符合条件且没有已有工单时才会显示申请按钮。</span><button id="send" class="primary">发送请求</button></div></form></section><aside class="panel"><div class="bar"><h2>计划与执行记录</h2><span id="run-status" class="status">等待请求</span></div><div id="trace" class="trace"><p class="empty">发送请求后，这里会展示结构化计划、工具输入输出，以及跳过或失败的原因。</p></div></aside></main><footer>当前版本：订单调查、退换条件、优惠金额与价保差额核对，以及确认后工单提交；不执行真实退款或补款。</footer>
+<!-- 进度组件独立于业务工具和对话状态，加载后由 SSE 事件驱动，不模拟查询结果。 -->
+<script src="/assets/chat-progress.js"></script>
+<script>
+// 浏览器只保存会话 ID，具体订单上下文与执行记录由本项目后端管理。
+const $=id=>document.getElementById(id);const previousSession=localStorage.getItem('skillflow-session');let session=previousSession||crypto.randomUUID();localStorage.setItem('skillflow-session',session);let busy=false,authMode='demo',identityReady=false;
+const labels={planner:'生成计划',validate:'校验计划',execute:'执行工具',synthesize:'生成回答',llm_answer:'回答事实校验',critic:'检查引用',dialogue:'理解对话',dialogue_guard:'目标与确认校验',product_confirmation:'商品确认',get_order:'查询订单',retrieve_policy:'检索政策',assess_after_sales:'核对退换条件',check_inventory:'查询库存',analyze_discount:'核对优惠金额',analyze_price_adjustment:'核对购买价与当前价',ticket_gate:'工单资格校验',confirmation_gate:'确认门',ticket_submit:'提交工单',submit:'提交工单',cancel:'取消工单',ticket_query:'查询工单'};
+// 使用 textContent 写入用户与模型文字，避免将回答当作 HTML 执行。
+function element(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e}
+// 刷新页面会清空可见消息，但后端会恢复同一会话；显式提示，避免把旧订单误认为新会话目标。
+if(previousSession)$('chat').append(element('p','已恢复上次会话状态，当前商品可能沿用此前确认的订单。处理其他商品请提供新订单号，或点击“新会话”。','welcome'));
+function lock(value){busy=value;document.querySelectorAll('button').forEach(b=>b.disabled=value);$('input').disabled=value}
+// 统一区分“后端返回错误”和“浏览器根本没有连上后端”，避免只显示含义不明的 Failed to fetch。
+// 后端的 detail.code 是稳定错误码；403 在所有页面操作中都显示为无权访问。
+function apiErrorText(status,data){
+  const detail=data?.detail;
+  if(status===403){
+    const code=detail&&typeof detail.code==='string'?detail.code:'';
+    return code?'无权访问（'+code+'）。':'无权访问。';
+  }
+  if(typeof detail==='string')return detail;
+  if(detail&&typeof detail.message==='string')return detail.message;
+  return '请求失败（HTTP '+status+'）';
+}
+async function api(url,options={}){
+  try{
+    const response=await fetch(url,withCsrf(options));
+    let data;
+    try{data=await response.json()}catch(_){data={}}
+    if(!response.ok)throw new Error(apiErrorText(response.status,data));
+    return data;
+  }catch(error){
+    if(error instanceof TypeError&&/fetch|network/i.test(error.message)){
+      const help=authMode==='production'
+        ?'无法连接项目 B HTTPS 服务（localhost:8001）。请检查 Uvicorn 是否以证书和私钥启动。'
+        :'无法连接项目 B 服务（127.0.0.1:8001）。请在 Agent项目目录运行：.venv\\Scripts\\python.exe scripts\\run_demo.py';
+      throw new Error(help);
+    }
+    throw error;
+  }
+}
+// 健康状态只依赖 B 本地索引，不读取或探测其他项目。
+async function health(){try{const h=await api('/health');if(h.auth_mode==='production'){/* 生产登录后不再用演示买家的 A123 引导其他买家越权查询。 */$('welcome-prompt').textContent='请填写您自己的订单号，并说明要查询订单、核对批次或调查售后资格。';authMode='production';$('model').textContent='登录认证';$('policy').textContent='政策：项目 B 本地库';$('setup').hidden=true;document.querySelector('.samples').hidden=true;$('notice').textContent='请登录后继续当前买家的会话。';return h;}$('model').textContent=h.model_mode==='mock'?'Planner：Mock 规则模式':'Planner：真实模型';$('policy').textContent='政策：B 本地 BM25';$('notice').textContent=h.policy_registered?'本地演示政策已索引，可以开始调查。':'本地政策未就绪，请检查 data/policies 后重建索引。';return h}catch(e){$('notice').textContent=e.message;$('run-status').textContent='服务未连接'}}
+// 引用链接指向同源政策原文接口，文件路径由后端索引确定。
+function bubble(role,text,citations=[]){const box=element('div',undefined,'bubble '+role);box.append(element('span',role==='user'?'你':'SkillFlow','role'),element('div',text));for(const c of citations){const d=element('details',undefined,'citation');d.append(element('summary',`[${c.citation_number}] ${c.filename||'政策文档'} · ${c.page?'第 '+c.page+' 页':'Markdown'} · ${c.chunk_id.slice(0,8)}`),element('pre',c.snippet));const a=element('a','查看原始政策');a.href='/policies/'+encodeURIComponent(c.document_id)+'/source';a.target='_blank';a.rel='noopener noreferrer';d.append(a);box.append(d)}$('chat').append(box);$('chat').scrollTop=$('chat').scrollHeight;return box}
+function renderTrace(data){const t=$('trace');t.replaceChildren();$('run-status').textContent=data.status;if(data.plan){t.append(element('strong','结构化计划'),element('p',data.plan.goal,'muted'));/* 计划会先于最终回答显示，仍须经服务端校验。 */t.append(element('div',`Skill：${data.plan.skill}`,'step'));if(!data.plan.steps.length)t.append(element('p',data.plan.message,'step'));for(const [i,s]of data.plan.steps.entries()){const d=element('div',undefined,'step');d.append(element('strong',`${i+1}. ${labels[s.tool]||s.tool}`),element('div',`工具 ${s.tool} · 依赖 ${s.depends_on.join(', ')||'无'}`,'muted'));t.append(d)}const p=element('details');p.append(element('summary','查看计划 JSON'),element('pre',JSON.stringify(data.plan,null,2)));t.append(p)}t.append(element('h3','实际执行'));for(const event of data.events){const e=element('details',undefined,'event '+event.status);const title=element('summary');title.append(element('span',(labels[event.tool||event.node]||event.node)+' '),element('span',event.status,'tag'));e.append(title,element('p',event.summary));if(event.duration_ms)e.append(element('div',event.duration_ms.toFixed(1)+' ms','muted'));if(Object.keys(event.details||{}).length)e.append(element('pre',JSON.stringify(event.details,null,2)));t.append(e)}if(data.status!=='streaming'&&data.run_id){const a=element('a','查看完整执行记录');a.href='/runs/'+data.run_id;a.target='_blank';a.rel='noopener';t.append(a)}}
+// 只有调查完成且资格成立时才显示工单按钮；网页不直接改写订单或库存。
+// 只在调查完成且资格成立时显示工单按钮；金额一致或证据不足时不显示优惠争议入口。
+function renderTicketActions(data,box){const order=data.result?.get_order?.order;const assessment=data.result?.assess_after_sales;const discount=data.result?.analyze_discount;const price=data.result?.analyze_price_adjustment;if(data.status!=='completed'||!order)return;/* 异类冲突或同类型有效工单均由回答展示数据库状态；只读调查不提供重复申请按钮。 */if(data.result?.ticket_conflict||data.result?.ticket_existing)return;const options=[];if(assessment){if(assessment.return_eligible)options.push(['return','申请退货']);const stock=data.result?.check_inventory?.available||0;if(assessment.exchange_eligible&&stock>0)options.push(['exchange','申请换货'])}if(discount&&!discount.consistent)options.push(['discount_dispute','申请优惠争议']);/* 价保按钮只在政策满足且没有有效退换工单时显示；建单和提交仍由后端复核。 */if(price?.eligible&&price.difference_cents>0&&!data.result?.price_application_blocked)options.push(['price_adjustment','申请价保补差']);if(!options.length)return;const actions=element('div',undefined,'ticket-actions');actions.append(element('div','创建工单前会再次校验政策，并在提交前要求明确确认。','ticket-message'));for(const [type,label]of options){const button=element('button',label);button.onclick=()=>createTicketDraft(data,type,actions);actions.append(button)}box.append(actions)}
+// 价保调查不可用时引导重新提供订单和价格问题，不把购买后降价误说成优惠金额核对。
+function renderSupportHint(data,box){if(data.status!=='unsupported'||data.plan?.skill!=='price_adjustment')return;const hint=element('div',undefined,'ticket-actions');const orderId=data.plan.order_id;hint.append(element('div',orderId?`当前无法完成订单 ${orderId} 的价保调查，请核对订单和价格凭证。`:'请提供订单号以核对购买价、当前价和演示价保政策。','ticket-message'));const button=element('button',orderId?'重新核对当前订单价差':'开始价差核对');button.onclick=()=>{$('input').value=orderId?`${orderId}当前有价差吗`:'当前有价差吗';$('input').focus()};hint.append(button);box.append(hint)}
+// 草稿和正式提交分成两个请求，避免点击调查结果就产生写入。
+const ticketTypeLabels={return:'退货',exchange:'换货',discount_dispute:'优惠争议',price_adjustment:'价保补差'};
+function ticketSummary(ticket){return `订单 ${ticket.order_id} · ${ticketTypeLabels[ticket.request_type]||ticket.request_type} · ${ticket.status} · 工单号 ${ticket.ticket_id}`}
+function appendCancelButton(ticket,actions){if(!ticket||ticket.status==='cancelled')return;const cancel=element('button','取消此工单');cancel.onclick=()=>cancelTicket(ticket.ticket_id,actions);actions.append(cancel)}
+async function createTicketDraft(data,type,actions){actions.querySelectorAll('button').forEach(button=>button.disabled=true);try{const draft=await api('/tickets/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:session,order_id:data.plan.order_id,request_type:type,reason:{return:'商品退货申请',exchange:'商品换货申请',discount_dispute:'优惠金额核对存在差异',price_adjustment:'演示价保补差申请'}[type]})});
+// element 的首参必须是 HTML 标签名；工单摘要是显示文本，不能传给 document.createElement。
+actions.replaceChildren(element('div',draft.ticket?ticketSummary(draft.ticket)+'；'+draft.message:draft.message,'ticket-message'));if(!draft.ticket)return;
+// 恢复已提交工单时只展示状态和取消入口，避免再次出现“确认提交”的误导按钮。
+if(draft.ticket.status==='draft'){const confirm=element('button','确认提交工单');confirm.className='primary';confirm.onclick=()=>confirmTicket(draft.ticket.ticket_id,actions);actions.append(confirm)}appendCancelButton(draft.ticket,actions)}catch(error){actions.replaceChildren(element('div','工单草稿创建失败：'+error.message,'ticket-message'))}}
+async function confirmTicket(ticketId,actions){actions.querySelectorAll('button').forEach(button=>button.disabled=true);try{const result=await api('/tickets/'+encodeURIComponent(ticketId)+'/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:session,confirmed:true})});
+// 确认结果也用固定标签承载文本，后端错误信息不参与 DOM 标签创建。
+actions.replaceChildren(element('div',result.ticket?ticketSummary(result.ticket)+'；'+result.message:result.message,'ticket-message'));appendCancelButton(result.ticket,actions)}catch(error){actions.replaceChildren(element('div','工单提交失败：'+error.message,'ticket-message'))}}
+async function cancelTicket(ticketId,actions){actions.querySelectorAll('button').forEach(button=>button.disabled=true);try{const result=await api('/tickets/'+encodeURIComponent(ticketId)+'/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:session})});
+// 取消结果只作为纯文本显示，避免将工单号或中文摘要当作 HTML 标签。
+actions.replaceChildren(element('div',result.ticket?ticketSummary(result.ticket)+'；'+result.message:result.message,'ticket-message'))}catch(error){actions.replaceChildren(element('div','工单取消失败：'+error.message,'ticket-message'))}}
+// SSE 帧按 id 去重；连接断开后通过 GET 只读回放，回答只在 final 帧到达时显示。
+// 仅 fetch 失败、流读取中断或流提前关闭才属于网络故障，可尝试只读回放。
+class StreamNetworkError extends Error{}
+async function consumeStream(response,handle){
+  if(!response.body)throw new Error('服务返回了无法读取的流式响应。');
+  const reader=response.body.getReader();
+  const decoder=new TextDecoder();
+  let buffer='';
+  while(true){
+    let chunk;
+    try{chunk=await reader.read()}catch(_){throw new StreamNetworkError('流连接中断。')}
+    const {done,value}=chunk;
+    if(done)break;
+    buffer+=decoder.decode(value,{stream:true}).replace(/\r\n/g,'\n');
+    let end;
+    while((end=buffer.indexOf('\n\n'))>=0){
+      const raw=buffer.slice(0,end);
+      buffer=buffer.slice(end+2);
+      if(!raw||raw.startsWith(':'))continue;
+      const lines=raw.split('\n');
+      const id=Number(lines.find(line=>line.startsWith('id:'))?.slice(3).trim()||0);
+      const kind=lines.find(line=>line.startsWith('event:'))?.slice(6).trim();
+      const data=lines.find(line=>line.startsWith('data:'))?.slice(5).trim();
+      if(kind&&data)handle(id,kind,JSON.parse(data));
+    }
+  }
+}
+async function readStreamFailure(response){
+  let data={};
+  try{data=await response.json()}catch(_){}
+  return apiErrorText(response.status,data);
+}
+async function runStream(job,replay=false){
+  // 首帧到达前就给出反馈；所有退出路径都清理等待气泡和定时器。
+  SkillFlowChatProgress.start(job.run_id,replay?'正在恢复上次的处理记录，请稍等…':undefined);
+  try{return await readRunStream(job,replay)}finally{SkillFlowChatProgress.stop(job.run_id)}
+}
+async function readRunStream(job,replay=false){
+  const progress={run_id:job.run_id,status:'streaming',plan:null,events:[]};
+  let lastSeq=0,finished=false;
+  renderTrace(progress);
+  for(let attempt=0;attempt<8&&!finished;attempt++){
+    try{
+      const url=replay?'/runs/'+job.run_id+'/stream?session_id='+encodeURIComponent(job.session_id)+'&after='+lastSeq:'/chat/stream';
+      let response;
+      try{
+        response=await fetch(url,replay?{}:{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken()},body:JSON.stringify(job)});
+      }catch(error){
+        if(error instanceof TypeError)throw new StreamNetworkError('网络连接中断。');
+        throw error;
+      }
+      // 任何 HTTP 错误都是服务端明确响应：403 展示错误码，其他状态也直接结束，不连接回放端点。
+      if(!response.ok){
+        sessionStorage.removeItem('skillflow-active-run');
+        bubble('assistant',await readStreamFailure(response));
+        $('run-status').textContent=response.status===403?'无权访问':'请求失败 · HTTP '+response.status;
+        $('trace').replaceChildren(element('p','本次请求没有可查看的执行记录。','empty'));
+        return;
+      }
+      await consumeStream(response,(seq,kind,payload)=>{
+        if(seq<=lastSeq)return;
+        lastSeq=seq;
+        SkillFlowChatProgress.event(kind,payload);
+        if(kind==='plan'){
+          progress.plan=payload;
+          renderTrace(progress);
+        }else if(kind==='status'){
+          // 集中咨询只发送一条持久化进度；页面即时显示状态，最终事实由 final 展示。
+          $('run-status').textContent=payload.code==='INCIDENT_INVESTIGATING'?'正在核对订单与质量事件':'处理中';
+        }else if(kind==='tool_start'){
+          progress.events.push({node:'execute',tool:payload.tool,status:'running',summary:'第 '+payload.attempt+' 次调用开始。',details:{}});
+          renderTrace(progress);
+        }else if(kind==='trace'){
+          if(payload.node==='execute'){
+            const pending=progress.events.findIndex(item=>item.status==='running'&&item.tool===payload.tool);
+            if(pending>=0)progress.events.splice(pending,1);
+          }
+          progress.events.push(payload);
+          renderTrace(progress);
+        }else if(kind==='final'){
+          finished=true;
+          sessionStorage.removeItem('skillflow-active-run');
+          SkillFlowChatProgress.stop(job.run_id);
+          const assistant=bubble('assistant',payload.answer,payload.citations);
+          renderTicketActions(payload,assistant);
+          renderSupportHint(payload,assistant);
+          renderTrace(payload);
+        }else if(kind==='error'||kind==='interrupted'){
+          finished=true;
+          sessionStorage.removeItem('skillflow-active-run');
+          SkillFlowChatProgress.stop(job.run_id);
+          bubble('assistant',payload.message);
+          $('run-status').textContent=kind;
+        }
+      });
+      replay=true;
+      if(!finished)throw new StreamNetworkError('流提前结束。');
+    }catch(error){
+      if(!(error instanceof StreamNetworkError)){
+        // 响应格式或页面处理错误不能靠重连修复，终止待恢复状态。
+        sessionStorage.removeItem('skillflow-active-run');
+        bubble('assistant','请求处理失败；未自动重连。');
+        $('run-status').textContent='处理失败';
+        return;
+      }
+      replay=true;
+      if(attempt===7)throw new Error('网络连接持续中断；请检查服务后刷新页面恢复执行记录。');
+      $('run-status').textContent='网络中断，正在恢复执行记录…';
+      SkillFlowChatProgress.reconnect();
+      await new Promise(resolve=>setTimeout(resolve,Math.min(500*(attempt+1),3000)));
+    }
+  }
+}
+$('form').addEventListener('submit',async event=>{
+  event.preventDefault();if(!identityReady){$('notice').textContent='请先登录并等待会话恢复。';return}if(busy)return;
+  const pending=sessionStorage.getItem('skillflow-active-run');
+  if(pending){const job=JSON.parse(pending);lock(true);try{await runStream(job,true)}catch(e){bubble('assistant','原请求仍待恢复：'+e.message)}finally{lock(false)}return}
+  const message=$('input').value.trim();if(!message)return;
+  // 明确确认短句引用已展示卡片，直接走服务端 resume；不能交给模型产生授权。
+  if(s4Enabled&&/^(确认|确认提交|我确认提交|提交申请)[。！!]?$/.test(message)){
+    bubble('user',message);$('input').value='';
+    if(!currentAgentTask?.pending_action){bubble('assistant','请在要办理的具体申请卡片上点击确认；存在多张卡片时不能猜测。');return}
+    await resumeAgentTask(currentAgentTask,'confirm',message);return;
+  }
+  const job={run_id:crypto.randomUUID(),session_id:session,message};sessionStorage.setItem('skillflow-active-run',JSON.stringify(job));
+  bubble('user',message);$('input').value='';lock(true);
+  try{await runStream(job);if(s4Enabled)await refreshAgentTasks()}catch(e){bubble('assistant','请求连接失败：'+e.message);$('run-status').textContent='等待恢复'}finally{lock(false);$('input').focus()}
+});
+$('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('form').requestSubmit()}});
+document.querySelectorAll('[data-order]').forEach(b=>b.onclick=()=>{$('input').value=`查询订单 ${b.dataset.order}，结合店铺政策，调查这件商品能否退换。`;$('input').focus()});
+// 重建只更新 B 自有政策索引，不执行文件上传或调用其他服务。
+$('setup').onclick=async()=>{lock(true);$('notice').textContent='正在重建本地政策索引……';try{await api('/demo/setup-policy',{method:'POST'});await health()}catch(e){$('notice').textContent=e.message}finally{lock(false)}};
+$('reset').onclick=async()=>{if(!identityReady)return;sessionStorage.removeItem('skillflow-active-run');if(authMode==='production'){const data=await api('/sessions',{method:'POST'});session=data.session_id;localStorage.setItem('skillflow-session-'+currentBuyer,session)}else{session=crypto.randomUUID();localStorage.setItem('skillflow-session',session)}$('chat').replaceChildren(element('p','已开启新会话。','welcome'));$('trace').replaceChildren(element('p','等待新请求。','empty'));$('run-status').textContent='等待请求';/* 新会话不显示另一会话的确认卡片。 */currentAgentTask=null;if($('agent-tasks'))$('agent-tasks').replaceChildren()};
+// 生产模式先由服务端认证买家与会话，再恢复同买家的 SSE；旧本地 session_id 不能授予访问权。
+let currentBuyer='';
+function csrfToken(){const item=document.cookie.split('; ').find(part=>part.startsWith('__Host-skillflow-csrf='));return item?decodeURIComponent(item.split('=')[1]):''}
+function withCsrf(options){if((options.method||'GET').toUpperCase()==='GET')return options;return {...options,headers:{...(options.headers||{}),'X-CSRF-Token':csrfToken()}}}
+// 先撤销项目 B 会话，再用顶层页面跳转到 Keycloak 登出；fetch 跳转无法可靠清除 IdP Cookie。
+$('login').textContent='登录或切换账号';$('logout').textContent='退出当前账号';
+$('login').onclick=()=>{location.href='/auth/login'};
+$('logout').onclick=async()=>{lock(true);try{const result=await api('/auth/logout',{method:'POST'});sessionStorage.removeItem('skillflow-active-run');if(result.logout_url){location.href=result.logout_url;return}$('notice').textContent='已退出 SkillFlow；Keycloak 暂不可用，请使用独立浏览器窗口切换账号。';location.reload()}catch(error){$('notice').textContent='退出失败：'+error.message}finally{lock(false)}};
+async function boot(){const h=await health();if(!h)return;if(authMode==='production'){try{const me=await api('/auth/me');currentBuyer=me.buyer_id;$('identity').textContent='买家：'+currentBuyer;$('logout').hidden=false;const key='skillflow-session-'+currentBuyer;session=localStorage.getItem(key)||'';if(session){try{await api('/sessions/'+encodeURIComponent(session))}catch(_){session=''}}if(!session){const created=await api('/sessions',{method:'POST'});session=created.session_id;localStorage.setItem(key,session)}}catch(error){$('login').hidden=false;$('identity').textContent='未登录';$('notice').textContent='请登录后使用客服：'+error.message;return}}else{$('identity').textContent='演示模式'}identityReady=true;/* 登录成功后更新提示，避免仍显示“请登录”。 */if(authMode==='production')$('notice').textContent='已登录；仅可查询当前买家的订单。';const pendingRun=sessionStorage.getItem('skillflow-active-run');if(pendingRun){try{const job=JSON.parse(pendingRun);if(job.session_id===session){bubble('user',job.message);lock(true);runStream(job,true).catch(error=>{bubble('assistant','恢复失败：'+error.message);$('run-status').textContent='等待恢复'}).finally(()=>lock(false))}else sessionStorage.removeItem('skillflow-active-run')}catch(_){sessionStorage.removeItem('skillflow-active-run')}}}
+// S3 复用原聊天/SSE，增加实际 Skill、工具、证据展示；旧引擎页面行为保持兼容。
+let agentReadOnly=false;
+const legacyHealth=health;
+// S6 同一能力渲染用于演示健康结果及生产登录后的可信配置。
+function configureAgentRuntime(h){if(!h)return h;
+  if(h.auth_mode==='production'){
+    // 登录前也不能把浏览器旧缓存说成服务端已恢复的任务或商品授权。
+    for(const note of document.querySelectorAll('#chat .welcome'))if(note.textContent.includes('已恢复上次会话状态'))note.remove();
+    const badges=document.querySelectorAll('.badges .badge');
+    badges[1].textContent='订单：仅本人订单';badges[3].textContent='售后：确认后提交';
+  }
+  if(h.agent_engine==='tool_loop')$('model').textContent=h.agent_model_mode==='scripted'?'S1：脚本骨架':'S3：真实模型 Tool Calling';
+  if(h.read_only){agentReadOnly=true;document.querySelector('header p').textContent='真实模型按需加载 Skill 并调用只读工具；运行时校验权限、证据与完成条件。';
+    /* 新图不继承旧引擎的商品上下文，避免刷新提示让用户误以为仍有旧授权。 */
+    for(const note of document.querySelectorAll('#chat .welcome'))if(note.textContent.includes('已恢复上次会话状态'))note.remove();
+    const emptyTrace=document.querySelector('#trace .empty');if(emptyTrace)emptyTrace.textContent='发送请求后，可展开实际 Skill、工具参数、工具返回、证据及运行时 Hook。';
+    const badges=document.querySelectorAll('.badges .badge');badges[1].textContent='订单：B 自有模拟数据 / '+h.business_backend;badges[3].textContent='S3：只读调查';
+    document.querySelector('.hint').textContent='可查询退换资格、批次及替代品；本阶段不创建工单。';
+    document.querySelector('aside h2').textContent='Agent 实际调用与证据';document.querySelector('footer').textContent='S3 真实模型＋模拟业务数据；仅只读调查。检查点恢复在 S4、物流 MCP 在 S5 接入。';
+    $('notice').textContent='S3 已连接：右侧可核对 Skill 版本、工具参数、观察结果和证据引用。';
+    if(previousSession&&!$('agent-pending-note')){const note=element('p',`本会话已确认的调查目的有效期为 ${h.agent_context_ttl_seconds/60} 分钟；有效期内仅提供新单号会沿用目的，每笔订单重新取证。`,'welcome');note.id='agent-pending-note';$('chat').append(note)}
+    const samples=[['多候选澄清','查询我的耳机订单，结合政策调查能否退换。'],['质量事件','A700 是否受充电宝质量事件影响，能否退货，有哪些替代品？']];
+    /* 重建索引会再次检查健康状态，示例按钮只初始化一次。 */
+    if(!document.querySelector('[data-s3-sample]'))for(const [label,message] of samples){const b=element('button',label);b.dataset.s3Sample=label;b.onclick=()=>{$('input').value=message;$('input').focus()};document.querySelector('.samples').append(b)}
+  }
+  if(h.agent_s4_enabled){
+    s4Enabled=true;agentReadOnly=false;$('model').textContent='S4：可恢复售后 Agent';
+    // 新图不沿用 legacy 商品授权提示；任务卡片与短期调查目的分别由服务端加载。
+    for(const note of document.querySelectorAll('#chat .welcome'))if(note.textContent.includes('已恢复上次会话状态'))note.remove();
+    document.querySelector('header p').textContent='真实模型按需调用工具；明确申请后创建草稿，核对确认后提交工单。';
+    document.querySelector('.hint').textContent=`例如“为 A123 申请退货”。确认卡片有效 ${h.agent_confirmation_seconds/60} 分钟；过期后可重新核验。`;
+    const badges=document.querySelectorAll('.badges .badge');badges[1].textContent='订单：B 自有模拟数据 / '+h.business_backend;badges[3].textContent='S4：检查点与确认';
+    document.querySelector('aside h2').textContent='Agent 实际调用与证据';
+    document.querySelector('footer').textContent='S4：模拟订单和工单，不执行真实退款。等待用户时释放执行位，SSE 重连只回放。';
+    $('notice').textContent='S4 已连接：查询只读；本轮明确申请才创建草稿，确认后提交。';
+    // boot 的身份校验完成后读取任务；读取只展示进度，不自动恢复执行。
+    setTimeout(()=>{if(identityReady)refreshAgentTasks().catch(e=>{$('notice').textContent=e.message})},0);
+  }
+  if(h.agent_s5_enabled){
+    // S5 保留原确认卡片交互，新增真实协议及来源时间提示；健康读取不会重连。
+    $('model').textContent='S5：MCP 物流与售后 Agent';
+    document.querySelector('.badges .badge:last-child').textContent='S5：stdio MCP';
+    document.querySelector('.hint').textContent='可问“A123 的配送物流到哪里了？”或“A125 的配送物流”；物流为固定模拟记录。';
+    document.querySelector('footer').textContent='S5：真实模型＋真实 stdio MCP 协议，订单与物流均为 B 自有模拟数据；来源更新时间不代表实时轨迹。';
+    $('notice').textContent=h.logistics_mcp?.status==='ready'?'S5 已连接物流 MCP；右侧可核对协议来源、结果和工具观察。':'物流 MCP 暂不可用，订单与售后仍可使用。';
+    if(!document.querySelector('[data-s5-sample]'))for(const [label,message] of [['配送物流','查询 A123 的配送物流。'],['暂无物流','查询 A125 的配送物流。']]){const b=element('button',label);b.dataset.s5Sample=label;b.onclick=()=>{$('input').value=message;$('input').focus()};document.querySelector('.samples').append(b)}
+  }
+  if(h.agent_s6_enabled){$('model').textContent='智能售后 Agent';$('notice').textContent='已登录，可调查本人订单、查询配送物流及申请售后。';
+    document.querySelector('footer').textContent='模拟业务数据；Agent 使用真实模型与 MCP 协议。申请确认后才提交，不执行真实退款。';
+    // 服务端只返回当前买家的示例，不展示其他买家或原演示账号的订单。
+    const box=document.querySelector('.samples');box.replaceChildren();box.hidden=false;
+    // S6 最后覆盖 S5 的旧物流提示；只取服务端校验归属后的示例，无案例时使用通用引导。
+    const logisticsExamples=['normal','no_policy'].map(kind=>(h.examples||[]).find(item=>item.kind===kind&&item.order_id)).filter(Boolean);
+    document.querySelector('.hint').textContent=logisticsExamples.length
+      ?'可问'+logisticsExamples.map(item=>`“查询 ${item.order_id} 的配送物流”`).join('或')+'；物流为固定模拟记录。'
+      :'可提供您自己的订单号查询配送物流；物流为固定模拟记录。';
+    for(const item of h.examples||[]){const b=element('button',item.label);b.onclick=()=>{$('input').value=item.message;$('input').focus()};box.append(b)}
+  }
+  return h};
+health=async function(){return configureAgentRuntime(await legacyHealth())};
+const legacyTicketActions=renderTicketActions;
+renderTicketActions=function(data,box){/* 持久图只使用绑定 task 的卡片，不调用旧 tickets 写接口。 */if(['S4','S5'].includes(data.result?.stage)){currentAgentTask=data.result.task?.pending_action?data.result.task:null;return}if(agentReadOnly||data.result?.read_only)return;legacyTicketActions(data,box)};
+const legacyRenderTrace=renderTrace;
+renderTrace=function(data){legacyRenderTrace(data);const r=data.result;if(!r?.read_only&&!['S4','S5'].includes(r?.stage))return;
+  // 缺目标/过期等澄清回合由会话策略直接返回，不能误标为该回合已经调用模型。
+  const section=element('section',undefined,'step');section.append(element('strong',r.stage==='S5'?'S5 · MCP 协议 / 实际执行图':r.stage==='S4'?'S4 · 实际执行图 / 工单事务':r.budget.model_requests?'真实模型 · 只读调查':'会话策略澄清 · 未请求模型'),element('div','终止原因：'+r.stop_reason));
+  section.append(element('div','Skill：'+(Object.entries(r.loaded_skills||{}).map(([n,v])=>n+' @ '+v).join('、')||'未加载')));
+  section.append(element('div',`预算：${r.budget.model_requests} 次模型请求 / ${r.budget.rounds} 轮决策 / ${r.budget.tool_attempts} 次工具尝试`));
+  if(r.task_goal?.continuation_of_task_id)section.append(element('div','关联前次任务：'+r.task_goal.continuation_of_task_id));
+  // 目标来源与工具结果分开，便于核对续问没有降成普通订单查询。
+  if(r.conversation_context){const c=r.conversation_context;section.append(element('div','目标处理：'+({inherit:'沿用调查目的',new:'明确新目标',paused:'暂停继承',clarify:'需要澄清'}[c.action]||c.action)+' · '+c.reason));if(c.goal_summary)section.append(element('div','调查目的：'+c.goal_summary));if(c.expires_at)section.append(element('div','目标有效至：'+new Date(c.expires_at*1000).toLocaleString()))}
+  for(const [i,row] of (r.tool_records||[]).entries()){const d=element('details');const o=row.observation;d.append(element('summary',`${i+1}. ${row.name} · ${o.status}${o.error_code?' · '+o.error_code:''}`),element('pre',JSON.stringify({arguments:row.arguments,...o},null,2)));section.append(d)}
+  const refs=element('details');refs.append(element('summary','可信事实与结果引用'),element('pre',JSON.stringify({facts:r.trusted_facts,result_refs:r.result_refs},null,2)));section.append(refs);$('trace').prepend(section)
+};
+// S4 卡片是独立任务区域；同一聊天可以显示多个申请，每张按钮固定自己的 task/版本/动作。
+let s4Enabled=false,currentAgentTask=null;
+async function refreshAgentTasks(){
+  if(!s4Enabled||!identityReady)return;
+  const data=await api('/agent/tasks?session_id='+encodeURIComponent(session));
+  let panel=$('agent-tasks');if(!panel){panel=element('section');panel.id='agent-tasks';$('form').after(panel)}
+  panel.replaceChildren(element('h3','售后任务与待确认申请'));
+  const pending=data.tasks.filter(t=>t.resumable);
+  currentAgentTask=pending.length===1&&pending[0].pending_action?pending[0]:null;
+  if(!pending.length){panel.append(element('p','当前没有待继续的申请。'));return}
+  for(const task of pending){
+    const card=element('section',undefined,'step');card.append(element('strong','任务 '+task.task_id.slice(0,8)+' · '+task.status));
+    if(task.pending_action){const a=task.pending_action;card.append(element('p',a.summary));for(const fact of a.facts_summary||[])card.append(element('p',fact));card.append(element('p','有效至：'+new Date(a.expires_at*1000).toLocaleString()));}
+    const buttons=element('div');
+    const actions=task.status==='waiting_confirmation'?[['确认提交','confirm'],['重新核验并展示确认卡片','refresh']]:[['继续中断任务','continue']];
+    for(const [label,decision] of actions){const b=element('button',label);b.type='button';b.onclick=()=>resumeAgentTask(task,decision);buttons.append(b)}
+    card.append(buttons);panel.append(card);
+  }
+}
+async function resumeAgentTask(task,decision,sourceText=null){
+  if(busy)return;lock(true);
+  // 恢复接口当前返回完整执行段，只展示等待与计时，不编造尚未收到的工具阶段。
+  const progressId='resume:'+task.task_id;
+  SkillFlowChatProgress.start(progressId,decision==='confirm'?'正在重新核对并办理这笔申请，请稍等…':decision==='refresh'?'正在重新核验申请信息，请稍等…':'正在继续上次中断的处理，请稍等…');
+  try{
+    const a=task.pending_action||{};
+    const body={session_id:session,request_id:crypto.randomUUID(),expected_version:task.version,checkpoint_id:task.checkpoint_id,
+      decision,confirmation_id:a.confirmation_id||null,action_hash:a.action_hash||null,source_text:sourceText};
+    const result=await api('/agent/tasks/'+task.task_id+'/resume',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    SkillFlowChatProgress.stop(progressId);bubble('assistant',result.answer,result.citations);renderTrace(result);await refreshAgentTasks();
+  }catch(e){bubble('assistant','任务未继续：'+e.message);await refreshAgentTasks().catch(()=>{})}
+  finally{SkillFlowChatProgress.stop(progressId);lock(false)}
+}
+// 生产配置在可信身份建立后读取；健康接口保持匿名最小返回，任务加载不触发执行。
+const identityBoot=boot;
+boot=async function(){await identityBoot();if(identityReady&&authMode==='production'){
+  const me=await api('/auth/me');configureAgentRuntime(me.runtime||{});
+  if(s4Enabled)await refreshAgentTasks();
+}};
+boot().catch(error=>{$('notice').textContent='页面初始化未完成：'+error.message});
+// 展示持久化工单事件；它记录跨会话操作，与本次请求的 LangGraph Trace 分开。
+function renderTicketEvents(events,actions){if(!events||!events.length)return;const details=element('details',undefined,'ticket-history');details.append(element('summary','查看工单操作历史'));for(const item of events){const row=element('div',undefined,'ticket-history-row');row.append(element('strong',`${item.action} · ${item.result}`),element('div',`会话：${item.session_id} · 时间：${item.created_at}`,'muted'));if(item.error_code)row.append(element('div',`错误码：${item.error_code}`,'muted'));details.append(row)}actions.append(details)}
+// 统一拦截工单接口响应，把后端返回的持久化事件补到当前工单操作区域。
+const skillflowFetch=window.fetch;window.fetch=async function(input,options){const response=await skillflowFetch(input,options);const url=typeof input==='string'?input:input.url;if(url.includes('/tickets/')){response.clone().json().then(data=>{const actions=document.querySelectorAll('.ticket-actions');if(actions.length&&data.ticket_events)renderTicketEvents(data.ticket_events,actions[actions.length-1])}).catch(()=>{});}return response};
+</script></body></html>

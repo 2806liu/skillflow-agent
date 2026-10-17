@@ -1,0 +1,17 @@
+{
+  "demo-buyer": {
+    "buyer_id": "demo-buyer",
+    "display_name": "演示买家甲",
+    "description": "用于网页主流程验收的默认买家"
+  },
+  "other-buyer": {
+    "buyer_id": "other-buyer",
+    "display_name": "演示买家乙",
+    "description": "用于验证不能读取买家甲工单的账号"
+  },
+  "alice-buyer": {
+    "buyer_id": "alice-buyer",
+    "display_name": "演示买家丙",
+    "description": "用于验证第三个买家之间的数据隔离"
+  }
+}

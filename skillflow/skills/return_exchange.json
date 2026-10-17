@@ -1,0 +1,8 @@
+{
+  "name": "return_exchange",
+  "description": "依据订单、检索到的店铺政策和库存调查退换条件；不提交工单",
+  "input_schema": "ChatRequest",
+  "allowed_tools": ["get_order", "retrieve_policy", "assess_after_sales", "check_inventory"],
+  "output_schema": "ChatResponse",
+  "version": "1.0"
+}

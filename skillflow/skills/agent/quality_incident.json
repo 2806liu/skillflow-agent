@@ -1,0 +1,5 @@
+{
+  "name": "quality_incident", "description": "依据可信订单批次及已审核事件版本逐单核验影响和替代品。",
+  "version": "1.0", "allowed_tools": ["list_my_orders", "get_order", "match_quality_incident", "list_alternatives", "create_ticket_draft", "submit_ticket"],
+  "instructions_path": "../instructions/quality_incident.md", "completion_conditions": ["incident_assessed"]
+}

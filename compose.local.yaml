@@ -1,0 +1,83 @@
+# 项目 B 本机 HTTPS 部署：复用宿主机 Keycloak、证书、.env 和 SQLite，不创建或修改其他项目服务。
+services:
+  skillflow:
+    build: .
+    image: skillflow-agent:local
+    container_name: skillflow-local-https
+    # 只把宿主机回环地址映射给浏览器；容器通过 host.docker.internal 回连既有 Keycloak。
+    ports:
+      - "127.0.0.1:8001:8001"
+    restart: unless-stopped
+    # 容器内监听所有接口，但 Docker 仅向宿主机 127.0.0.1 发布端口。
+    command:
+      - python
+      - -m
+      - uvicorn
+      - skillflow.api:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8001"
+      - --ssl-certfile
+      - /certs/localhost.pem
+      - --ssl-keyfile
+      - /certs/localhost-key.pem
+      - --no-access-log
+    environment:
+      # S6 原服务就地升级：保留原端口、数据库挂载、Keycloak账号和Cookie名称。
+      # 首次切换前先运行 prepare_agent_s6.py --apply 备份并增量生成固定模拟案例。
+      SKILLFLOW_AGENT_ENGINE: tool_loop
+      SKILLFLOW_AGENT_MODEL_MODE: langchain_openai
+      SKILLFLOW_AGENT_S4_ENABLED: "true"
+      SKILLFLOW_AGENT_S5_ENABLED: "true"
+      SKILLFLOW_AGENT_S6_ENABLED: "true"
+      SKILLFLOW_AUTH_MODE: production
+      SKILLFLOW_DATA_DIR: /app/.skillflow
+      # 正式评测固定已确认预算，不因个别任务失败临时扩大。
+      SKILLFLOW_AGENT_MAX_ROUNDS: "8"
+      SKILLFLOW_AGENT_MAX_TOOL_ATTEMPTS: "12"
+      SKILLFLOW_AGENT_MAX_MODEL_REQUESTS: "10"
+      SKILLFLOW_AGENT_MODEL_TIMEOUT: "30"
+      SKILLFLOW_AGENT_ACTIVE_TIMEOUT: "120"
+      SKILLFLOW_AGENT_CONFIRMATION_SECONDS: "180"
+      SKILLFLOW_AGENT_CONTEXT_TTL_SECONDS: "1800"
+      SKILLFLOW_AGENT_MCP_QUERY_TIMEOUT: "10"
+      SKILLFLOW_AGENT_MCP_STARTUP_TIMEOUT: "10"
+      SKILLFLOW_BUSINESS_BACKEND: sqlalchemy
+      SKILLFLOW_FIXTURES_DIR: /app/.skillflow/s6-fixtures
+      SKILLFLOW_AGENT_LOGISTICS_FILE: /app/.skillflow/s6-fixtures/logistics.json
+      SKILLFLOW_CHAT_LOCK_MODE: session
+      SKILLFLOW_MAX_ACTIVE_CHATS: "8"
+      SKILLFLOW_MAX_WAITING_CHATS: "64"
+      SSL_CERT_FILE: /ca/rootCA.pem
+      NO_PROXY: localhost,127.0.0.1,::1,host.docker.internal
+      SKILLFLOW_OIDC_CONNECT_HOST: host.docker.internal
+    volumes:
+      # .env 仅在运行时只读挂载，客户端密钥不会进入镜像层。
+      - type: bind
+        source: ./.env
+        target: /app/.env
+        read_only: true
+      - type: bind
+        source: ./.skillflow
+        target: /app/.skillflow
+      - type: bind
+        source: ${SKILLFLOW_CERT_DIR:?请设置本机证书目录}
+        target: /certs
+        read_only: true
+      - type: bind
+        source: ${SKILLFLOW_CA_FILE:?请设置本机根 CA 文件}
+        target: /ca/rootCA.pem
+        read_only: true
+    healthcheck:
+      # 使用本机 CA 校验服务证书，同时要求健康端点处于 production 模式。
+      test:
+        - CMD
+        - python
+        - -c
+        - "import httpx; r=httpx.get('https://localhost:8001/health',verify='/ca/rootCA.pem',trust_env=False,timeout=5); assert r.status_code==200 and r.json().get('auth_mode')=='production'"
+      interval: 30s
+      timeout: 8s
+      start_period: 30s
+      retries: 3
+    stop_grace_period: 20s

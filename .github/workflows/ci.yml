@@ -1,0 +1,32 @@
+name: Project B CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install locked runtime and test tools
+        # 使用与镜像一致的锁定运行依赖；测试工具不写入生产镜像。
+        run: |
+          python -m pip install -r requirements.lock.txt
+          python -m pip install pytest ruff
+      - name: Run application and retained upstream tests
+        run: python -m pytest tests/ tests_skillflow/ -q
+      - name: Compile project code
+        run: python -m compileall -q corecoder skillflow scripts evaluation tests tests_skillflow
+      - name: Check retained upstream style
+        run: ruff check corecoder tests

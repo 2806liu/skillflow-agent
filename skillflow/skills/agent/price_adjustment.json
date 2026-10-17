@@ -1,0 +1,5 @@
+{
+  "name": "price_adjustment", "description": "使用本人订单价格凭证和政策判断价保资格。",
+  "version": "2.0", "allowed_tools": ["list_my_orders", "get_order", "retrieve_policy", "analyze_price_adjustment"],
+  "instructions_path": "../instructions/price_adjustment.md", "completion_conditions": ["price_assessed"]
+}

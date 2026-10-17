@@ -1,0 +1,8 @@
+{
+  "name": "order_tracking",
+  "description": "查询当前买家名下的一笔订单",
+  "input_schema": "ChatRequest",
+  "allowed_tools": ["get_order"],
+  "output_schema": "ChatResponse",
+  "version": "1.0"
+}

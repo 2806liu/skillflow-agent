@@ -1,0 +1,5 @@
+{
+  "name": "logistics_tracking", "description": "查询本人订单配送物流；物流能力待 S5 MCP 接入。",
+  "version": "1.0", "allowed_tools": ["list_my_orders", "get_order", "get_logistics"],
+  "instructions_path": "../instructions/logistics_tracking.md", "completion_conditions": ["logistics_verified"]
+}

@@ -1,0 +1,31 @@
+name: Docker image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build image
+        # 仅使用受 .dockerignore 约束的仓库内容；来源标签关联当前 GitHub 仓库。
+        run: |
+          docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$IMAGE:latest" -t "$IMAGE:$GITHUB_SHA" .
+      - name: Sign in to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # 短期工作流令牌经标准输入传给 Docker，不进入镜像或代码。
+        run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Push image
+        run: |
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"

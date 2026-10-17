@@ -1,0 +1,5 @@
+{
+  "name": "coupon_dispute", "description": "核对本人订单原价、优惠、实付和政策退款依据。",
+  "version": "2.0", "allowed_tools": ["list_my_orders", "get_order", "retrieve_policy", "analyze_discount"],
+  "instructions_path": "../instructions/coupon_dispute.md", "completion_conditions": ["discount_assessed"]
+}

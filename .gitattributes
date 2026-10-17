@@ -1,0 +1,7 @@
+# 跨 Windows、Linux 和 Docker 保持文本换行一致，避免整文件无效差异。
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

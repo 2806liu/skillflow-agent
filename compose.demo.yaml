@@ -1,0 +1,42 @@
+# 可移植的单买家演示：复用完整 Agent 与 MCP 能力，数据写入独立 Docker 卷。
+# 模型凭据从本机 .env 注入；不连接当前机器的业务库、Keycloak 或证书。
+services:
+  skillflow:
+    build: .
+    image: ${SKILLFLOW_IMAGE:-skillflow-agent:local}
+    ports:
+      - "127.0.0.1:8001:8001"
+    env_file:
+      - .env
+    environment:
+      SKILLFLOW_AGENT_ENGINE: tool_loop
+      SKILLFLOW_AGENT_MODEL_MODE: langchain_openai
+      SKILLFLOW_AGENT_S4_ENABLED: "true"
+      SKILLFLOW_AGENT_S5_ENABLED: "true"
+      SKILLFLOW_AGENT_S6_ENABLED: "false"
+      SKILLFLOW_AUTH_MODE: demo
+      SKILLFLOW_DEMO_BUYER_ID: demo-buyer
+      SKILLFLOW_BUSINESS_BACKEND: sqlalchemy
+      SKILLFLOW_DATA_DIR: /app/.skillflow/docker-demo
+      SKILLFLOW_FIXTURES_DIR: /app/data
+      SKILLFLOW_AGENT_LOGISTICS_FILE: /app/data/logistics/delivery.json
+      SKILLFLOW_CHAT_LOCK_MODE: session
+      SKILLFLOW_MAX_ACTIVE_CHATS: "8"
+      SKILLFLOW_MAX_WAITING_CHATS: "64"
+    volumes:
+      - skillflow-demo-data:/app/.skillflow
+    healthcheck:
+      # 仅探测本容器；健康检查不会调用付费模型或执行售后申请。
+      test:
+        - CMD
+        - python
+        - -c
+        - "import httpx; r=httpx.get('http://127.0.0.1:8001/health',trust_env=False,timeout=5); assert r.status_code==200 and r.json().get('status')=='ok'"
+      interval: 30s
+      timeout: 8s
+      start_period: 30s
+      retries: 3
+    stop_grace_period: 20s
+
+volumes:
+  skillflow-demo-data:

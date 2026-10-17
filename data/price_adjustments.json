@@ -1,0 +1,5 @@
+{
+  "A123": {"purchase_price_cents": 18900, "current_price_cents": 17900, "price_drop_days_ago": 1},
+  "A124": {"purchase_price_cents": 18900, "current_price_cents": 18900, "price_drop_days_ago": 0},
+  "A126": {"purchase_price_cents": 18900, "current_price_cents": 17900, "price_drop_days_ago": 20}
+}
